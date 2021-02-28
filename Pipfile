@@ -8,6 +8,8 @@ django = "==3.1"
 djangorestframework = "==3.12"
 twilio = "==6.53.0"
 sendgrid = "==6.6.0"
+django-phonenumber-field = "==5.0.0"
+phonenumbers = "*"
 
 [dev-packages]
 flake8 = "*"
