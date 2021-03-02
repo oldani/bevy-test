@@ -1,4 +1,5 @@
-from django.db.models.functions import text
+import datetime as dt
+
 import pytest
 from django.db import IntegrityError
 from django.urls import reverse
@@ -6,7 +7,9 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .models import NotificationType, Notification
+
+from notifications.models import NotificationType, Notification
+from notifications.tasks import send_scheduled_notifications
 
 pytestmark = pytest.mark.django_db
 
@@ -157,21 +160,60 @@ class TestNotificationPreferencesAPI:
 
 
 class TestNotificationsAPI:
-    def test_create_notification(self, user, client):
+    def test_create_notification(self, user, profile, client, mocker):
         assert user.notifications.count() == 0
+        profile.notification_type = NotificationType.SMS
+        profile.phone = "+18092223333"
+        profile.save()
 
-        now = timezone.now()
+        class TClient:
+            def __init__(self, *args, **kwargs):
+                self.messages = type(
+                    "messages", (object,), {"create": self.create}
+                )
+
+            @staticmethod
+            def create(from_, body, to):
+                assert profile.phone == to
+
+        mocker.patch("notifications.tasks.TWILIO_CLIENT", TClient())
         response = client.post(
             reverse("notifications"),
             data={
                 "title": "test title",
                 "text": "text",
-                "send_at": now.isoformat(),
             },
         )
 
         assert response.status_code == 201
         assert user.notifications.count() == 1
+
+        notification = user.notifications.first()
+        assert notification.sent_at is not None
+
+    def test_create_notification_scheduled(self, user, profile, mocker):
+        assert user.notifications.count() == 0
+        profile.notification_type = NotificationType.EMAIL
+        profile.email = "hi@test.com"
+        profile.save()
+
+        class SClient:
+            def send(self, message):
+                ...
+
+        mocker.patch("notifications.tasks.SENDGRID_CLIENT", SClient())
+
+        Notification.objects.create(
+            user=user,
+            title="test",
+            text="notification",
+            send_at=timezone.now() - dt.timedelta(minutes=1),
+        )
+        send_scheduled_notifications()
+
+        assert user.notifications.count() == 1
+        notification = user.notifications.first()
+        assert notification.sent_at is not None
 
     def test_list_notifications(self, user, client):
         for _ in range(5):

@@ -2,6 +2,7 @@ from django.db import IntegrityError
 from rest_framework import serializers
 
 from .models import Profile, NotificationType, Notification
+from .tasks import send_notification
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -48,4 +49,8 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["user_id"] = self.context["request"].user.id
-        return super().create(validated_data)
+        notification = super().create(validated_data)
+        if not notification.send_at:
+            send_notification(notification.id)
+
+        return notification
