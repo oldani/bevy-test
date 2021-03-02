@@ -1,7 +1,7 @@
 from django.db import IntegrityError
 from rest_framework import serializers
 
-from .models import Profile, NotificationType
+from .models import Profile, NotificationType, Notification
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -38,3 +38,14 @@ class ProfileSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Missing phone field")
 
         return profile
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ("id", "title", "text", "send_at", "sent_at", "created_at")
+        read_only_fields = ("id", "sent_at", "created_at")
+
+    def create(self, validated_data):
+        validated_data["user_id"] = self.context["request"].user.id
+        return super().create(validated_data)

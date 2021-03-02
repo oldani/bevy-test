@@ -1,10 +1,12 @@
+from django.db.models.functions import text
 import pytest
 from django.db import IntegrityError
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework.test import APIClient
 
-from .models import NotificationType
+from .models import NotificationType, Notification
 
 pytestmark = pytest.mark.django_db
 
@@ -152,3 +154,33 @@ class TestNotificationPreferencesAPI:
 
         response = response.json()
         assert response["notification_type"] == "email"
+
+
+class TestNotificationsAPI:
+    def test_create_notification(self, user, client):
+        assert user.notifications.count() == 0
+
+        now = timezone.now()
+        response = client.post(
+            reverse("notifications"),
+            data={
+                "title": "test title",
+                "text": "text",
+                "send_at": now.isoformat(),
+            },
+        )
+
+        assert response.status_code == 201
+        assert user.notifications.count() == 1
+
+    def test_list_notifications(self, user, client):
+        for _ in range(5):
+            Notification.objects.create(user=user, title="title", text="test")
+
+        response = client.get(
+            reverse("notifications"),
+        )
+        assert response.status_code == 200
+
+        response = response.json()
+        assert len(response) == 5
