@@ -10,6 +10,8 @@ twilio = "==6.53.0"
 sendgrid = "==6.6.0"
 django-phonenumber-field = "==5.0.0"
 phonenumbers = "*"
+huey = "==2.2.0"
+pytest-mock = "*"
 
 [dev-packages]
 flake8 = "*"

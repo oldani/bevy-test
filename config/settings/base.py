@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # Third party apps
     "rest_framework",
     "phonenumber_field",
+    "huey.contrib.djhuey",
     # Local apps
     "notifications",
 ]
@@ -130,3 +131,21 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = "/static/"
+
+
+#
+HUEY = {
+    "name": "my-app",
+    "huey_class": "huey.SqliteHuey",
+    "filename": "/tmp/demo.db",
+    "immediate": False,
+    "consumer": {"workers": 2, "worker_type": "thread"},
+}
+
+
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY")
+SENDGRID_FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL")
+
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")
